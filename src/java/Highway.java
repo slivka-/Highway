@@ -1,5 +1,9 @@
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
+import java.util.Enumeration;
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
@@ -22,22 +26,52 @@ public class Highway extends HttpServlet
      * @throws ServletException if a servlet-specific error occurs
      * @throws IOException if an I/O error occurs
      */
-    protected void processRequest(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException
+    protected void processRequest(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException
     {
         response.setContentType("text/html;charset=UTF-8");
-        try (PrintWriter out = response.getWriter())
+        
+        String dbString = "";
+        Enumeration<String> paramNames = request.getParameterNames();
+        while(paramNames.hasMoreElements())
         {
-            /* TODO output your page here. You may use following sample code. */
-            out.println("<!DOCTYPE html>");
-            out.println("<html>");
-            out.println("<head>");
-            out.println("<title>Servlet Highway</title>");            
-            out.println("</head>");
-            out.println("<body>");
-            out.println("<h1>Servlet Highway at " + request.getContextPath() + "</h1>");
-            out.println("</body>");
-            out.println("</html>");
+            String paramValue = request.getParameter(paramNames.nextElement());
+            if(paramValue.startsWith("jdbc"))
+            {
+                dbString = paramValue;
+                break;
+            }
+        }
+        if(!dbString.equalsIgnoreCase(""))
+        {
+            
+            String output = "";
+            try
+            {
+                Class.forName("org.sqlite.JDBC");
+                try(Connection conn = DriverManager.getConnection(dbString))
+                {
+                    
+                }
+            
+            }
+            catch(SQLException | ClassNotFoundException ex)
+            {
+                output = ex.toString();
+            }
+            finally
+            {
+                try (PrintWriter out = response.getWriter())
+                {
+                    out.println(output);
+                }  
+            }        
+        }
+        else
+        {
+            try (PrintWriter out = response.getWriter())
+            {
+                out.println("No database string provided");
+            }
         }
     }
 
