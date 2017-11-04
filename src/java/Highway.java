@@ -3,7 +3,11 @@ import java.io.PrintWriter;
 import java.sql.Connection;
 import java.sql.Driver;
 import java.sql.DriverManager;
+import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Enumeration;
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
@@ -31,7 +35,7 @@ public class Highway extends HttpServlet
     {
         response.setContentType("text/html;charset=UTF-8");
         String dbString = "";
-        //Check url parameters for jdbc connection string
+        //check url parameters for jdbc connection string
         Enumeration<String> paramNames = request.getParameterNames();
         while(paramNames.hasMoreElements())
         {
@@ -71,13 +75,24 @@ public class Highway extends HttpServlet
                     default:
                         throw new ClassNotFoundException();
                 }
-
+                //connect to database
                 try(Connection conn = DriverManager.getConnection(dbString))
                 {
-                    output = "OK";
+                    //create new instance of HighwayPlan
+                    HighwayPlan plan = new HighwayPlan();
+                    //creata a statement and select data from database
+                    Statement st = conn.createStatement();
+                    ResultSet result = st.executeQuery("SELECT * FROM HDATA ORDER BY ID ASC");
+                    while(result.next())
+                    {
+                        //insert selected data to HighwayPlan
+                        plan.AddPair(result.getInt("i"), result.getInt("j"));
+                    }
+                    //set result to output variable
+                    output = String.valueOf(plan.CanBuildRoads());
                 }
                 
-                //Unload all used drivers
+                //unload all used drivers
                 Enumeration<Driver> drivers = DriverManager.getDrivers();
                 while(drivers.hasMoreElements())
                 {
@@ -88,12 +103,14 @@ public class Highway extends HttpServlet
             }
             catch(SQLException | ClassNotFoundException ex)
             {
+                //set exception to output variable
                 output = ex.toString() + "<br/>Call Stack:<br/>";
                 for(StackTraceElement el : ex.getStackTrace())
                     output += el.toString()+"<br/>";
             }
             finally
             {
+                //print the output variable
                 try (PrintWriter out = response.getWriter())
                 {
                     out.println(output);
@@ -102,6 +119,7 @@ public class Highway extends HttpServlet
         }
         else
         {
+            //no database string detected, inform user 
             try (PrintWriter out = response.getWriter())
             {
                 out.println("No database string provided");
@@ -151,4 +169,131 @@ public class Highway extends HttpServlet
         return "Short description";
     }// </editor-fold>
 
+    /**
+     * Represents a plan to build highways between cities
+     * @author Michał Śliwa
+     */
+    class HighwayPlan
+    {
+        //ArrayList holding pairs of cities to build between
+        private final ArrayList<CityPair> highways;
+        
+        /**
+         * Default constructor
+         */
+        public HighwayPlan()
+        {
+            highways = new ArrayList<>();
+        }
+        
+        /**
+         * Adds a new CityPair to the plan
+         * 
+         * @param i number of first city
+         * @param j number of second city
+         */
+        public void AddPair(int i, int j)
+        {
+            highways.add(new CityPair(i, j));
+        }
+        
+        /**
+         * Check if non-intersecting web of roads can be built
+         * @return 1 if it can be built, otherwise 0
+         */
+        public int CanBuildRoads()
+        {
+            //sort city pairs ascending by number of first city 
+            //then by number of second city
+            Collections.sort(highways,(o1, o2) -> o1.compareTo(o2));
+            
+            //collection for highways built in north
+            ArrayList<CityPair> NorthBuiltRoads = new ArrayList<>();
+            //for every pair of cities in highways
+            for (int i=0; i<highways.size(); i++)
+            {
+                Boolean canBuildPair = true;
+                //get current pair of cities
+                CityPair currentPair = highways.get(i);
+                for (CityPair p : NorthBuiltRoads)
+                {
+                    //check if highway can be built without intersecting
+                    //if not, break
+                    if(currentPair.j > p.j && currentPair.i > p.i && currentPair.i < p.j)
+                    {
+                        canBuildPair = false;
+                        break;
+                    }
+                }
+                //if highway can be built, add it to northern list
+                if (canBuildPair)
+                {
+                    NorthBuiltRoads.add(currentPair);
+                }
+            }
+            //remove from highways all roads that are on northern list
+            NorthBuiltRoads.forEach((p) -> highways.remove(p));
+
+            //collection for highways built in south
+            ArrayList<CityPair> SouthBuiltRoads = new ArrayList<>();
+            //for every pair of cities remaining in highways
+            for (int i=0; i<highways.size(); i++)
+            {
+                //get current pair of cities
+                CityPair currentPair = highways.get(i);
+                //check if highway can be built without intersecting
+                //if not, return 0
+                for (CityPair p : SouthBuiltRoads)
+                {
+                    if(currentPair.j > p.j && currentPair.i > p.i && currentPair.i < p.j)
+                    {
+                        return 0;
+                    }
+                }
+                //if highway can be built, add it to southern list
+                SouthBuiltRoads.add(currentPair);
+            }
+            //if all roads can be built, return 1
+            return 1;
+        }
+    }
+    
+    /**
+     * Represents a pair of cities
+     * @author Michał Śliwa
+     */
+    class CityPair implements Comparable<CityPair>
+    {
+        //number of first city
+        public int i;
+        //number of second city
+        public int j;
+        
+        /**
+         * Constructor
+         * @param _i number of first city
+         * @param _j number of second city
+         */
+        public CityPair(int _i, int _j)
+        {
+            this.i = _i;
+            this.j = _j;
+        }
+
+        /**
+         * Overriden comparator for CityPair, compares first city number and
+         * if identical, second city number
+         * @param o other instace of CityPair
+         * @return
+         */
+        @Override
+        public int compareTo(CityPair o)
+        {
+            int iVal = this.i - o.i;
+            if(iVal != 0)
+                return iVal;
+            else
+                return this.j - o.j;
+        }
+    }
 }
