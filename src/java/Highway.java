@@ -31,24 +31,26 @@ public class Highway extends HttpServlet
      * @throws ServletException if a servlet-specific error occurs
      * @throws IOException if an I/O error occurs
      */
-    protected void processRequest(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException
+    protected void processRequest(HttpServletRequest request, 
+            HttpServletResponse response) throws ServletException, IOException
     {
         response.setContentType("text/html;charset=UTF-8");
         String dbString = "";
         //check url parameters for jdbc connection string
         Enumeration<String> paramNames = request.getParameterNames();
-        while(paramNames.hasMoreElements())
+        while (paramNames.hasMoreElements())
         {
             String paramValue = request.getParameter(paramNames.nextElement());
-            if(paramValue.startsWith("jdbc"))
+            if (paramValue.startsWith("jdbc"))
             {
-                //if parameter line starts with jdbc, save it as connection string and break
+                //if parameter line starts with jdbc, 
+                //save it as connection string and break
                 dbString = paramValue;
                 break;
             }
         }
         //start if jdbc connection string was found
-        if(!dbString.equalsIgnoreCase(""))
+        if (!dbString.equalsIgnoreCase(""))
         {
             //split connection string to get database type
             String dbType = dbString.split("\\:")[1].toLowerCase();
@@ -56,7 +58,7 @@ public class Highway extends HttpServlet
             try
             {
                 //load appropriate driver based on connection string
-                switch(dbType)
+                switch (dbType)
                 {
                     case "sqlite":
                         Class.forName("org.sqlite.JDBC");                        
@@ -77,14 +79,15 @@ public class Highway extends HttpServlet
                         throw new ClassNotFoundException();
                 }
                 //connect to database
-                try(Connection conn = DriverManager.getConnection(dbString))
+                try (Connection conn = DriverManager.getConnection(dbString))
                 {
                     //create new instance of HighwayPlan
                     HighwayPlan plan = new HighwayPlan();
                     //creata a statement and select data from database
                     Statement st = conn.createStatement();
-                    ResultSet result = st.executeQuery("SELECT * FROM HDATA ORDER BY ID ASC");
-                    while(result.next())
+                    String sqlQuery = "SELECT * FROM HDATA ORDER BY ID ASC";
+                    ResultSet result = st.executeQuery(sqlQuery);
+                    while (result.next())
                     {
                         //insert selected data to HighwayPlan
                         plan.AddPair(result.getInt("i"), result.getInt("j"));
@@ -95,18 +98,18 @@ public class Highway extends HttpServlet
                 
                 //unload all used drivers
                 Enumeration<Driver> drivers = DriverManager.getDrivers();
-                while(drivers.hasMoreElements())
+                while (drivers.hasMoreElements())
                 {
                     Driver d = drivers.nextElement();
                     DriverManager.deregisterDriver(d);
                 }
             
             }
-            catch(SQLException | ClassNotFoundException ex)
+            catch (SQLException | ClassNotFoundException ex)
             {
                 //set exception to output variable
                 output = ex.toString() + "<br/>Call Stack:<br/>";
-                for(StackTraceElement el : ex.getStackTrace())
+                for (StackTraceElement el : ex.getStackTrace())
                     output += el.toString()+"<br/>";
             }
             finally
@@ -220,7 +223,7 @@ public class Highway extends HttpServlet
                 {
                     //check if highway can be built without intersecting
                     //if not, break
-                    if(currentPair.j > p.j && currentPair.i > p.i && currentPair.i < p.j)
+                    if (currentPair.j > p.j && currentPair.i > p.i && currentPair.i < p.j)
                     {
                         canBuildPair = false;
                         break;
@@ -249,7 +252,7 @@ public class Highway extends HttpServlet
                 //if not, return 0
                 for (CityPair p : SouthBuiltRoads)
                 {
-                    if(currentPair.j > p.j && currentPair.i > p.i && currentPair.i < p.j)
+                    if (currentPair.j > p.j && currentPair.i > p.i && currentPair.i < p.j)
                     {
                         return 0;
                     }
@@ -260,44 +263,44 @@ public class Highway extends HttpServlet
             //if all roads can be built, return 1
             return 1;
         }
-    }
-    
-    /**
-     * Represents a pair of cities
-     * @author Michał Śliwa
-     */
-    class CityPair implements Comparable<CityPair>
-    {
-        //number of first city
-        public int i;
-        //number of second city
-        public int j;
         
         /**
-         * Constructor
-         * @param _i number of first city
-         * @param _j number of second city
-         */
-        public CityPair(int _i, int _j)
-        {
-            this.i = _i;
-            this.j = _j;
-        }
+        * Represents a pair of cities
+        * @author Michał Śliwa
+        */
+       class CityPair implements Comparable<CityPair>
+       {
+           //number of first city
+           int i;
+           //number of second city
+           int j;
 
-        /**
-         * Overriden comparator for CityPair, compares first city number and
-         * if identical, second city number
-         * @param o other instace of CityPair
-         * @return
-         */
-        @Override
-        public int compareTo(CityPair o)
-        {
-            int iVal = this.i - o.i;
-            if(iVal != 0)
-                return iVal;
-            else
-                return this.j - o.j;
-        }
+           /**
+            * Constructor
+            * @param i number of first city
+            * @param j number of second city
+            */
+           public CityPair(int i, int j)
+           {
+               this.i = i;
+               this.j = j;
+           }
+
+           /**
+            * Overriden comparator for CityPair, compares first city number and
+            * if identical, second city number
+            * @param o other instace of CityPair
+            * @return
+            */
+           @Override
+           public int compareTo(CityPair o)
+           {
+               int iVal = this.i - o.i;
+               if (iVal != 0)
+                   return iVal;
+               else
+                   return this.j - o.j;
+           }
+       }
     }
 }
