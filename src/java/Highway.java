@@ -72,6 +72,7 @@ public class Highway extends HttpServlet
                         break;
                     case "postgresql":
                         Class.forName("org.postgresql.Driver");
+                        break;
                     default:
                         throw new ClassNotFoundException();
                 }
@@ -205,7 +206,7 @@ public class Highway extends HttpServlet
         {
             //sort city pairs ascending by number of first city 
             //then by number of second city
-            Collections.sort(highways,(o1, o2) -> o1.compareTo(o2));
+            Collections.sort(highways);
             
             //collection for highways built in north
             ArrayList<CityPair> NorthBuiltRoads = new ArrayList<>();
@@ -232,8 +233,11 @@ public class Highway extends HttpServlet
                 }
             }
             //remove from highways all roads that are on northern list
-            NorthBuiltRoads.forEach((p) -> highways.remove(p));
-
+            for (CityPair p : NorthBuiltRoads)
+            {
+                highways.remove(p);
+            }
+            
             //collection for highways built in south
             ArrayList<CityPair> SouthBuiltRoads = new ArrayList<>();
             //for every pair of cities remaining in highways
