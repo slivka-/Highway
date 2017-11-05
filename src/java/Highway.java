@@ -95,15 +95,6 @@ public class Highway extends HttpServlet
                     //set result to output variable
                     output = String.valueOf(plan.CanBuildRoads());
                 }
-                
-                //unload all used drivers
-                Enumeration<Driver> drivers = DriverManager.getDrivers();
-                while (drivers.hasMoreElements())
-                {
-                    Driver d = drivers.nextElement();
-                    DriverManager.deregisterDriver(d);
-                }
-            
             }
             catch (SQLException | ClassNotFoundException ex)
             {
